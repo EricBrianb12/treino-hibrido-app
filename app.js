@@ -131,7 +131,7 @@ function save() {
 const SUPABASE_URL = window.SUPABASE_URL || "";
 const SUPABASE_ANON_KEY = window.SUPABASE_ANON_KEY || "";
 const SYNC_CODE = "semana-hibrida-eric"; // fixo: é só o Eric, entre os próprios aparelhos, sem código manual
-const SYNC_POLL_MS = 8000;
+const SYNC_POLL_MS = 20000; // rede de segurança; a via principal é o Realtime
 const supabase = (SUPABASE_URL && SUPABASE_ANON_KEY) ? createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
 let syncStatus = "idle"; // idle | syncing | synced | error
 
@@ -145,23 +145,25 @@ function syncStatusColor(s) {
 let syncTimer = null;
 let pollTimer = null;
 
+function applyRemoteRow(row) {
+  if (!row || (store.updatedAt && new Date(row.updated_at) <= new Date(store.updatedAt))) return false;
+  const base = emptyWeek();
+  store = { ...base, ...row.data, updatedAt: row.updated_at };
+  try { localStorage.setItem(STORE_KEY, JSON.stringify(store)); } catch(e) {}
+  syncStatus = "synced";
+  render();
+  return true;
+}
+
 async function pullFromCloud(silent) {
   if (!supabase) return false;
   if (!silent) { syncStatus = "syncing"; render(); }
   try {
     const { data, error } = await supabase.from("progress").select("data,updated_at").eq("sync_code", SYNC_CODE).maybeSingle();
     if (error) throw error;
-    if (data && (!store.updatedAt || new Date(data.updated_at) > new Date(store.updatedAt))) {
-      const base = emptyWeek();
-      store = { ...base, ...data.data, updatedAt: data.updated_at };
-      try { localStorage.setItem(STORE_KEY, JSON.stringify(store)); } catch(e) {}
-      syncStatus = "synced";
-      render();
-      return true;
-    }
-    syncStatus = "synced";
-    if (!silent) render();
-    return false;
+    const applied = applyRemoteRow(data);
+    if (!applied) { syncStatus = "synced"; if (!silent) render(); }
+    return applied;
   } catch (e) {
     syncStatus = "error";
     render();
@@ -197,6 +199,13 @@ function startAutoSync() {
   pullFromCloud(false);
   clearInterval(pollTimer);
   pollTimer = setInterval(() => pullFromCloud(true), SYNC_POLL_MS);
+
+  supabase
+    .channel("progress-" + SYNC_CODE)
+    .on("postgres_changes", { event: "*", schema: "public", table: "progress", filter: `sync_code=eq.${SYNC_CODE}` }, (payload) => {
+      applyRemoteRow(payload.new);
+    })
+    .subscribe();
 }
 document.addEventListener("visibilitychange", () => {
   if (document.visibilityState === "visible") pullFromCloud(true);
@@ -342,7 +351,7 @@ function render() {
       <span style="font-size:11px;font-weight:700;color:${syncStatusColor(syncStatus)}">${supabase ? (syncStatusLabel(syncStatus) || "automática") : "não configurada"}</span>
     </div>
     <p class="note">${supabase
-      ? "Seu progresso sincroniza automaticamente entre todos os seus aparelhos, sem precisar de código."
+      ? "Seu progresso sincroniza em tempo real entre todos os seus aparelhos, sem precisar de código."
       : `Sincronização ainda não configurada. Crie o <code style="color:var(--mint)">config.js</code> a partir do <code style="color:var(--mint)">config.example.js</code> com as credenciais do Supabase.`}</p>
   </section>`;
 }

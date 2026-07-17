@@ -21,3 +21,6 @@ create policy "progress_insert_anon"
 create policy "progress_update_anon"
   on public.progress for update
   to anon using (true) with check (true);
+
+-- Habilita eventos em tempo real (Realtime) pra essa tabela
+alter publication supabase_realtime add table public.progress;
