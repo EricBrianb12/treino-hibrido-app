@@ -131,7 +131,39 @@ window.uploadPhoto = async () => {
   render();
 };
 
+window.clearWeighIns = async () => {
+  if (!confirm("Apagar todo o histórico de peso? Não pode ser desfeito.")) return;
+  busy.weight = true; formError = ""; render();
+  try {
+    const { error } = await supabase.from("weigh_ins").delete().gte("id", 0);
+    if (error) throw error;
+    await loadWeighIns();
+  } catch (e) {
+    formError = "Erro ao limpar histórico de peso.";
+  }
+  busy.weight = false;
+  render();
+};
+
+window.clearPhotos = async () => {
+  if (!confirm("Apagar todas as fotos enviadas? Não pode ser desfeito.")) return;
+  busy.photo = true; formError = ""; render();
+  try {
+    const paths = photos.map(p => p.path);
+    if (paths.length) {
+      const { error } = await supabase.storage.from(BUCKET).remove(paths);
+      if (error) throw error;
+    }
+    await loadPhotos();
+  } catch (e) {
+    formError = "Erro ao limpar fotos.";
+  }
+  busy.photo = false;
+  render();
+};
+
 const inputStyle = "background:var(--card-soft);border:1.5px solid var(--line);border-radius:10px;color:var(--text);padding:9px 12px;font-family:inherit;font-size:14px;width:100%";
+const clearLinkStyle = "display:block;text-align:center;margin-top:10px;font-size:11px;color:var(--danger);background:none;border:none;font-family:inherit;cursor:pointer;text-decoration:underline;width:100%";
 
 function renderLogin() {
   return `
@@ -180,7 +212,8 @@ function renderApp() {
             <span>${esc(w.recorded_at)}</span>
             <span style="color:var(--mint);font-weight:700">${fmt1(Number(w.weight_kg))} kg</span>
           </div>`).join("")}
-      </div>` : `<p class="note">Nenhum peso registrado ainda.</p>`}
+      </div>
+      <button style="${clearLinkStyle}" onclick="clearWeighIns()">Limpar histórico de peso</button>` : `<p class="note">Nenhum peso registrado ainda.</p>`}
   </section>
 
   <section class="card">
@@ -218,7 +251,8 @@ function renderApp() {
             <img src="${p.url}" alt="Foto de ${esc(p.date)}" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:10px;border:1px solid var(--line)">
             <div style="font-size:10px;color:var(--dim);text-align:center;margin-top:3px">${esc(p.date)}</div>
           </a>`).join("")}
-      </div>` : `<p class="note" style="margin-top:10px">Nenhuma foto ainda. As fotos ficam privadas, só você acessa.</p>`}
+      </div>
+      <button style="${clearLinkStyle}" onclick="clearPhotos()">Limpar todas as fotos</button>` : `<p class="note" style="margin-top:10px">Nenhuma foto ainda. As fotos ficam privadas, só você acessa.</p>`}
   </section>
 
   <p class="footer-note" style="text-align:center;margin-bottom:16px"><a href="index.html" style="color:var(--dim)">← voltar pro checklist</a></p>`;
