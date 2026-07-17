@@ -111,6 +111,7 @@ export const emptyWeek = () => ({
   bottleSize: 709,
   updatedAt: null,
   days: Object.fromEntries(DAYS.map(d => [d.id, { meals:{}, water:0, workout:{} }])),
+  cargas: {},
 });
 
 export function bottlesGoal(store) { return Math.round(WATER_GOAL_ML / store.bottleSize); }

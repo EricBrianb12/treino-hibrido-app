@@ -8,7 +8,7 @@ try {
   if (raw) {
     const parsed = JSON.parse(raw);
     const base = emptyWeek();
-    store = { bottleSize: parsed.bottleSize || base.bottleSize, updatedAt: parsed.updatedAt || null, days: { ...base.days, ...(parsed.days||{}) } };
+    store = { bottleSize: parsed.bottleSize || base.bottleSize, updatedAt: parsed.updatedAt || null, days: { ...base.days, ...(parsed.days||{}) }, cargas: parsed.cargas || {} };
   } else store = emptyWeek();
 } catch(e) { store = emptyWeek(); }
 
@@ -109,6 +109,18 @@ document.addEventListener("visibilitychange", () => {
 
 // ---------------- helpers ----------------
 const esc = (s) => s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+function slugify(s) {
+  return s.toLowerCase()
+    .normalize("NFD").replace(/\p{Diacritic}/gu, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+function exerciseId(dId, blockText) { return dId + "-" + slugify(blockText); }
+function lastCargaKg(exId) {
+  const arr = (store.cargas && store.cargas[exId]) || [];
+  if (!arr.length) return null;
+  return arr.reduce((latest, r) => (!latest || r.data > latest.data) ? r : latest, null).kg;
+}
 
 // ---------------- ações ----------------
 window.setDay = (id) => { dayId = id; render(); };
@@ -118,6 +130,17 @@ window.setBottle = (ml) => { store.bottleSize = ml; save(); render(); };
 window.waterAdd = (n) => {
   const g = bottlesGoal(store);
   store.days[dayId].water = Math.min(g, Math.max(0, store.days[dayId].water + n));
+  save(); render();
+};
+window.saveCarga = (exId, rawVal) => {
+  const kg = parseFloat(String(rawVal).replace(",", "."));
+  if (!kg || kg <= 0) return;
+  if (!store.cargas) store.cargas = {};
+  if (!store.cargas[exId]) store.cargas[exId] = [];
+  const today = new Date().toISOString().slice(0,10);
+  const arr = store.cargas[exId];
+  const idx = arr.findIndex(r => r.data === today);
+  if (idx >= 0) arr[idx] = { data: today, kg }; else arr.push({ data: today, kg });
   save(); render();
 };
 
@@ -210,8 +233,11 @@ function render() {
     <div class="stack" style="margin-top:0">
       ${day.blocks.map((b,i) => {
         const c = !!dd.workout[i];
+        const exId = exerciseId(day.id, b.t);
+        const lastKg = day.type==="gym" ? lastCargaKg(exId) : null;
         return `<div class="item ${c?"checked":""}" style="cursor:default">
           <input type="checkbox" ${c?"checked":""} onchange="toggleWorkout(${i})">
+          ${day.type==="gym" ? `<input type="number" step="0.5" min="0" inputmode="decimal" placeholder="${lastKg!=null?`última: ${lastKg}kg`:"kg"}" onblur="saveCarga('${exId}', this.value)" style="flex:none;width:64px;background:var(--card-soft);border:1.5px solid var(--line);border-radius:8px;color:var(--text);padding:6px 8px;font-size:12px;font-family:inherit;text-align:center">` : ""}
           <div style="flex:1">
             <div class="strike" style="font-size:13.5px;line-height:1.45">${esc(b.t)}</div>
             ${b.v?`<a class="video-link" href="${b.v}" target="_blank" rel="noopener">▶ ver vídeo</a>`:""}
