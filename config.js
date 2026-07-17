@@ -1,3 +1,2 @@
-// Preencha após criar o projeto no Supabase (veja README.md)
-window.SUPABASE_URL = "";
-window.SUPABASE_ANON_KEY = "";
+window.SUPABASE_URL = "https://rrywatbzzmipapfcyefj.supabase.co";
+window.SUPABASE_ANON_KEY = "sb_publishable_rsZta9k8M_BbdQ4hrMN0Yg_VXsxTNLi";
