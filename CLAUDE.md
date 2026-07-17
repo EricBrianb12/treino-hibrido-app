@@ -25,17 +25,8 @@ diários com checklists. Começa na segunda-feira.
   tamanho (473ml / 709ml / 1064ml).
 
 ## Próxima tarefa (prioridade)
-Adicionar sincronização entre dispositivos com Supabase (plano free):
-1. Tabela única `progress` com colunas: `sync_code` (text, pk), `data` (jsonb),
-   `updated_at` (timestamptz).
-2. UX: usuário gera/insere um "código de sincronização" (6-8 caracteres) no app;
-   mesmo código em outro aparelho = mesmos dados.
-3. Estratégia: localStorage continua como cache local; sync com debounce ao
-   marcar itens; ao abrir, carrega do Supabase se houver código; last-write-wins.
-4. Sem login/senha nesta fase (simplicidade > segurança aqui; dados não sensíveis).
-5. Usar `@supabase/supabase-js` via CDN (esm.sh ou jsdelivr) para manter o
-   projeto sem build. Chave anon + RLS com policy permitindo select/upsert
-   pela própria linha do sync_code.
+~~Adicionar sincronização entre dispositivos com Supabase~~ ✅ Implementado.
+Ver `supabase/schema.sql`, `config.js` e seção Sincronização no app.
 
 ## Backlog (depois da sync)
 - Semana 2+: progressão de cargas e novos ciclos de treino (o Eric vai pedir
