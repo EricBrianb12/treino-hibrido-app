@@ -130,18 +130,10 @@ function save() {
 // ---------------- sync (Supabase) ----------------
 const SUPABASE_URL = window.SUPABASE_URL || "";
 const SUPABASE_ANON_KEY = window.SUPABASE_ANON_KEY || "";
-const SYNC_CODE_KEY = "semana-hibrida-sync-code";
+const SYNC_CODE = "semana-hibrida-eric"; // fixo: é só o Eric, entre os próprios aparelhos, sem código manual
+const SYNC_POLL_MS = 8000;
 const supabase = (SUPABASE_URL && SUPABASE_ANON_KEY) ? createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
-let syncCode = localStorage.getItem(SYNC_CODE_KEY) || "";
 let syncStatus = "idle"; // idle | syncing | synced | error
-let syncTimer = null;
-
-function genSyncCode() {
-  const chars = "23456789ABCDEFGHJKMNPQRSTUVWXYZ"; // sem 0/O/1/I/L pra evitar confusão
-  let code = "";
-  for (let i = 0; i < 7; i++) code += chars[Math.floor(Math.random() * chars.length)];
-  return code;
-}
 
 function syncStatusLabel(s) {
   return { syncing:"sincronizando…", synced:"sincronizado ✓", error:"erro ao sincronizar" }[s] || "";
@@ -150,11 +142,14 @@ function syncStatusColor(s) {
   return { syncing:"var(--dim)", synced:"var(--lime)", error:"var(--danger)" }[s] || "var(--dim)";
 }
 
-async function pullFromCloud(code) {
+let syncTimer = null;
+let pollTimer = null;
+
+async function pullFromCloud(silent) {
   if (!supabase) return false;
-  syncStatus = "syncing"; render();
+  if (!silent) { syncStatus = "syncing"; render(); }
   try {
-    const { data, error } = await supabase.from("progress").select("data,updated_at").eq("sync_code", code).maybeSingle();
+    const { data, error } = await supabase.from("progress").select("data,updated_at").eq("sync_code", SYNC_CODE).maybeSingle();
     if (error) throw error;
     if (data && (!store.updatedAt || new Date(data.updated_at) > new Date(store.updatedAt))) {
       const base = emptyWeek();
@@ -165,7 +160,7 @@ async function pullFromCloud(code) {
       return true;
     }
     syncStatus = "synced";
-    render();
+    if (!silent) render();
     return false;
   } catch (e) {
     syncStatus = "error";
@@ -175,18 +170,18 @@ async function pullFromCloud(code) {
 }
 
 function scheduleSync() {
-  if (!supabase || !syncCode) return;
+  if (!supabase) return;
   syncStatus = "syncing";
   clearTimeout(syncTimer);
   syncTimer = setTimeout(pushToCloud, 1200);
 }
 
 async function pushToCloud() {
-  if (!supabase || !syncCode) return;
+  if (!supabase) return;
   try {
     const updatedAt = store.updatedAt || new Date().toISOString();
     const { error } = await supabase.from("progress").upsert(
-      { sync_code: syncCode, data: store, updated_at: updatedAt },
+      { sync_code: SYNC_CODE, data: store, updated_at: updatedAt },
       { onConflict: "sync_code" }
     );
     if (error) throw error;
@@ -197,29 +192,15 @@ async function pushToCloud() {
   render();
 }
 
-window.generateSyncCode = () => {
-  syncCode = genSyncCode();
-  localStorage.setItem(SYNC_CODE_KEY, syncCode);
-  pushToCloud();
-  render();
-};
-
-window.connectSyncCode = async () => {
-  const input = document.getElementById("sync-input");
-  const code = (input?.value || "").trim().toUpperCase();
-  if (!code) return;
-  syncCode = code;
-  localStorage.setItem(SYNC_CODE_KEY, syncCode);
-  const pulled = await pullFromCloud(syncCode);
-  if (!pulled) scheduleSync();
-};
-
-window.disconnectSync = () => {
-  syncCode = "";
-  localStorage.removeItem(SYNC_CODE_KEY);
-  syncStatus = "idle";
-  render();
-};
+function startAutoSync() {
+  if (!supabase) return;
+  pullFromCloud(false);
+  clearInterval(pollTimer);
+  pollTimer = setInterval(() => pullFromCloud(true), SYNC_POLL_MS);
+}
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible") pullFromCloud(true);
+});
 
 // ---------------- helpers ----------------
 const esc = (s) => s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
@@ -358,30 +339,15 @@ function render() {
   <section class="card" style="margin-bottom:8px">
     <div class="row-between">
       <span class="card-title">Sincronização 🔄</span>
-      ${syncCode ? `<span style="font-size:11px;font-weight:700;color:${syncStatusColor(syncStatus)}">${syncStatusLabel(syncStatus)}</span>` : ""}
+      <span style="font-size:11px;font-weight:700;color:${syncStatusColor(syncStatus)}">${supabase ? (syncStatusLabel(syncStatus) || "automática") : "não configurada"}</span>
     </div>
-    ${!supabase ? `
-      <p class="note">Sincronização ainda não configurada. Crie o <code style="color:var(--mint)">config.js</code> a partir do <code style="color:var(--mint)">config.example.js</code> com as credenciais do Supabase.</p>
-    ` : syncCode ? `
-      <p class="note">Use este código no outro aparelho pra ver o mesmo progresso:</p>
-      <div style="text-align:center;font-size:26px;font-weight:900;letter-spacing:4px;color:var(--mint);margin:10px 0">${syncCode}</div>
-      <div class="size-row">
-        <button class="size-btn" onclick="navigator.clipboard && navigator.clipboard.writeText('${syncCode}')">Copiar código</button>
-        <button class="size-btn" onclick="disconnectSync()">Desconectar</button>
-      </div>
-    ` : `
-      <p class="note">Sincronize seu progresso entre celular e outros aparelhos com um código.</p>
-      <button class="size-btn active" style="width:100%;padding:10px 0" onclick="generateSyncCode()">Gerar código novo</button>
-      <p class="note" style="margin:10px 0 4px">Já tem um código de outro aparelho?</p>
-      <div class="size-row">
-        <input id="sync-input" placeholder="ABC1234" maxlength="8" style="flex:1;background:var(--card-soft);border:1.5px solid var(--line);border-radius:10px;color:var(--text);padding:0 10px;font-weight:800;letter-spacing:2px;text-transform:uppercase;font-family:inherit">
-        <button class="size-btn" onclick="connectSyncCode()">Conectar</button>
-      </div>
-    `}
+    <p class="note">${supabase
+      ? "Seu progresso sincroniza automaticamente entre todos os seus aparelhos, sem precisar de código."
+      : `Sincronização ainda não configurada. Crie o <code style="color:var(--mint)">config.js</code> a partir do <code style="color:var(--mint)">config.example.js</code> com as credenciais do Supabase.`}</p>
   </section>`;
 }
 render();
-if (syncCode && supabase) pullFromCloud(syncCode);
+startAutoSync();
 
 // PWA
 if ("serviceWorker" in navigator) {
