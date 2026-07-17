@@ -1,0 +1,13 @@
+{
+  "name": "Semana Híbrida — Desafio Atleta Híbrido",
+  "short_name": "Semana Híbrida",
+  "description": "Companheiro de 7 dias: dieta, água e treinos do desafio híbrido.",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#0E2213",
+  "theme_color": "#0E2213",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
