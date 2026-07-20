@@ -122,6 +122,15 @@ function lastCargaKg(exId) {
   return arr.reduce((latest, r) => (!latest || r.data > latest.data) ? r : latest, null).kg;
 }
 
+// ---------------- configurações ----------------
+let settingsOpen = false;
+window.toggleSettings = () => { settingsOpen = !settingsOpen; render(); };
+window.resetCargas = () => {
+  if (!confirm("Apagar todos os pesos (kg) registrados nos exercícios? Isso não pode ser desfeito.")) return;
+  store.cargas = {};
+  save(); render();
+};
+
 // ---------------- ações ----------------
 window.setDay = (id) => { dayId = id; render(); };
 window.toggleMeal = (id) => { store.days[dayId].meals[id] = !store.days[dayId].meals[id]; save(); render(); };
@@ -159,9 +168,22 @@ function render() {
 
   document.getElementById("app").innerHTML = `
   <header>
-    <div class="eyebrow">DESAFIO ATLETA HÍBRIDO 🐊</div>
-    <h1>${day.label} — ${esc(day.title)}</h1>
-    <div class="subtitle">${esc(day.subtitle)}</div>
+    <div class="row-between" style="align-items:flex-start">
+      <div>
+        <div class="eyebrow">DESAFIO ATLETA HÍBRIDO 🐊</div>
+        <h1>${day.label} — ${esc(day.title)}</h1>
+        <div class="subtitle">${esc(day.subtitle)}</div>
+      </div>
+      <button aria-label="Configurações" onclick="toggleSettings()" style="flex:none;width:40px;height:40px;border-radius:12px;border:1.5px solid var(--line);background:var(--card);color:var(--text);font-size:18px;cursor:pointer;font-family:inherit">⚙️</button>
+    </div>
+    ${settingsOpen ? `
+      <div class="card" style="margin-top:10px;margin-bottom:0;padding:10px 14px">
+        <div class="card-title" style="margin-bottom:8px">Configurações</div>
+        <div class="stack">
+          <button class="size-btn" style="width:100%;padding:9px 12px;text-align:left;color:var(--danger)" onclick="resetCargas()">🗑 Resetar kgs registrados</button>
+        </div>
+      </div>
+    ` : ""}
   </header>
 
   <nav class="day-row" aria-label="Dias da semana">
