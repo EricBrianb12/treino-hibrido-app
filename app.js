@@ -237,7 +237,7 @@ function render() {
         const lastKg = day.type==="gym" ? lastCargaKg(exId) : null;
         return `<div class="item ${c?"checked":""}" style="cursor:default">
           <input type="checkbox" ${c?"checked":""} onchange="toggleWorkout(${i})">
-          ${day.type==="gym" ? `<input type="number" step="0.5" min="0" inputmode="decimal" placeholder="${lastKg!=null?`última: ${lastKg}kg`:"kg"}" onblur="saveCarga('${exId}', this.value)" style="flex:none;width:64px;background:var(--card-soft);border:1.5px solid var(--line);border-radius:8px;color:var(--text);padding:6px 8px;font-size:12px;font-family:inherit;text-align:center">` : ""}
+          ${day.type==="gym" ? `<input type="number" step="0.5" min="0" inputmode="decimal" placeholder="${lastKg!=null?`${lastKg}kg`:"kg"}" onblur="saveCarga('${exId}', this.value)" style="flex:none;width:78px;min-width:78px;background:var(--card-soft);border:1.5px solid var(--line);border-radius:8px;color:var(--text);padding:8px 6px;font-size:15px;font-family:inherit;text-align:center">` : ""}
           <div style="flex:1">
             <div class="strike" style="font-size:13.5px;line-height:1.45">${esc(b.t)}</div>
             ${b.v?`<a class="video-link" href="${b.v}" target="_blank" rel="noopener">▶ ver vídeo</a>`:""}
