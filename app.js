@@ -124,12 +124,22 @@ function lastCargaKg(exId) {
 
 // ---------------- configurações ----------------
 let settingsOpen = false;
-window.toggleSettings = () => { settingsOpen = !settingsOpen; render(); };
+window.toggleSettings = (e) => { e.stopPropagation(); settingsOpen = !settingsOpen; render(); };
+window.closeSettingsAnd = (fn) => { fn(); settingsOpen = false; render(); };
 window.resetCargas = () => {
   if (!confirm("Apagar todos os pesos (kg) registrados nos exercícios? Isso não pode ser desfeito.")) return;
   store.cargas = {};
   save(); render();
 };
+document.addEventListener("click", (e) => {
+  if (!settingsOpen) return;
+  if (e.target.closest(".settings-wrap")) return;
+  settingsOpen = false;
+  render();
+});
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && settingsOpen) { settingsOpen = false; render(); }
+});
 
 // ---------------- ações ----------------
 window.setDay = (id) => { dayId = id; render(); };
@@ -174,16 +184,18 @@ function render() {
         <h1>${day.label} — ${esc(day.title)}</h1>
         <div class="subtitle">${esc(day.subtitle)}</div>
       </div>
-      <button aria-label="Configurações" onclick="toggleSettings()" style="flex:none;width:40px;height:40px;border-radius:12px;border:1.5px solid var(--line);background:var(--card);color:var(--text);font-size:18px;cursor:pointer;font-family:inherit">⚙️</button>
-    </div>
-    ${settingsOpen ? `
-      <div class="card" style="margin-top:10px;margin-bottom:0;padding:10px 14px">
-        <div class="card-title" style="margin-bottom:8px">Configurações</div>
-        <div class="stack">
-          <button class="size-btn" style="width:100%;padding:9px 12px;text-align:left;color:var(--danger)" onclick="resetCargas()">🗑 Resetar kgs registrados</button>
-        </div>
+      <div class="settings-wrap">
+        <button aria-label="Configurações" aria-expanded="${settingsOpen}" onclick="toggleSettings(event)" style="flex:none;width:40px;height:40px;border-radius:12px;border:1.5px solid var(--line);background:var(--card);color:var(--text);font-size:18px;cursor:pointer;font-family:inherit">⚙️</button>
+        ${settingsOpen ? `
+          <div class="settings-menu">
+            <div class="card-title" style="margin:2px 8px 8px">Configurações</div>
+            <div class="stack" style="margin-top:0">
+              <button class="settings-item danger" onclick="closeSettingsAnd(resetCargas)">🗑 Resetar kgs registrados</button>
+            </div>
+          </div>
+        ` : ""}
       </div>
-    ` : ""}
+    </div>
   </header>
 
   <nav class="day-row" aria-label="Dias da semana">

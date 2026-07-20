@@ -1,4 +1,4 @@
-const CACHE = "semana-hibrida-v1";
+const CACHE = "semana-hibrida-v2";
 const ASSETS = ["./", "./index.html", "./style.css", "./app.js", "./data.js", "./config.js", "./manifest.webmanifest", "./icon-192.png", "./icon-512.png"];
 self.addEventListener("install", (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS)));

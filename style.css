@@ -51,6 +51,25 @@ header { margin-bottom:14px; }
   color:var(--dim); font-family:inherit; transition:all .15s;
 }
 .size-btn.active { background:var(--mint); color:var(--bg); border-color:var(--mint); }
+.settings-wrap { position:relative; flex:none; }
+.settings-menu {
+  position:absolute; top:calc(100% + 8px); right:0;
+  min-width:210px; max-width:calc(100vw - 28px);
+  background:var(--card); border:1.5px solid var(--line); border-radius:14px;
+  padding:8px; box-shadow:0 8px 24px rgba(0,0,0,.35);
+  animation:settingsIn .14s ease-out;
+}
+@keyframes settingsIn {
+  from { opacity:0; transform:translateY(-4px) scale(.98); }
+  to   { opacity:1; transform:translateY(0) scale(1); }
+}
+.settings-item {
+  display:block; width:100%; text-align:left; background:transparent; border:none;
+  border-radius:10px; padding:10px 10px; font-size:13px; font-weight:700;
+  color:var(--text); cursor:pointer; font-family:inherit; transition:background .15s;
+}
+.settings-item:active { background:var(--card-soft); }
+.settings-item.danger { color:var(--danger); }
 .water-goal { color:var(--mint); font-size:13px; font-weight:700; margin-top:12px; text-align:center; }
 .water-hint { color:var(--dim); font-size:11px; margin-top:4px; text-align:center; }
 .water-controls { display:flex; align-items:center; gap:12px; margin-top:12px; }
