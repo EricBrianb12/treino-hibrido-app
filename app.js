@@ -131,6 +131,19 @@ window.resetCargas = () => {
   store.cargas = {};
   save(); render();
 };
+window.forceRefresh = async () => {
+  try {
+    if (window.caches) {
+      const keys = await caches.keys();
+      await Promise.all(keys.map(k => caches.delete(k)));
+    }
+    if ("serviceWorker" in navigator) {
+      const regs = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(regs.map(r => r.unregister()));
+    }
+  } catch (e) {}
+  location.reload();
+};
 document.addEventListener("click", (e) => {
   if (!settingsOpen) return;
   if (e.target.closest(".settings-wrap")) return;
@@ -190,6 +203,7 @@ function render() {
           <div class="settings-menu">
             <div class="card-title" style="margin:2px 8px 8px">Configurações</div>
             <div class="stack" style="margin-top:0">
+              <button class="settings-item" onclick="forceRefresh()">🔄 Forçar atualização (limpar cache)</button>
               <button class="settings-item danger" onclick="closeSettingsAnd(resetCargas)">🗑 Resetar kgs registrados</button>
             </div>
           </div>
